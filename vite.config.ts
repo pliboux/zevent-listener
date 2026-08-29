@@ -13,6 +13,5 @@ export default defineConfig({
       },
     },
     port: 2026,
-    // open: true,
   },
 })
