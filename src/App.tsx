@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import SortableHeader from "./components/SortableHeader";
 import { REFRESH_INTERVAL } from "./constants";
 import type { SortKey, ZeventStreamer } from "./types";
-import { getFollowers } from "./utils";
+import { getFollowers, getStreamTitle } from "./utils";
 
 function App() {
     // Fetch the Zevent data from the API with React Query
@@ -41,7 +41,6 @@ function App() {
                 location,
                 donationAmount,
                 viewersAmount,
-                game,
                 donationUrl,
                 profileUrl,
                 online,
@@ -55,7 +54,7 @@ function App() {
                 donationAmountFormatted: donationAmount.formatted,
                 viewersAmountRaw: viewersAmount.number,
                 viewersAmountFormatted: viewersAmount.formatted,
-                game,
+                title: "Chargement...",
                 donationUrl,
                 pictureUrl: profileUrl,
                 isOnline: online,
@@ -64,22 +63,26 @@ function App() {
 
         setStreamers(mappedStreamers);
 
-        // Fetch followers for each streamer and update the state
-        const loadFollowers = async () => {
-            const streamersWithFollowers = await Promise.all(
+        // Fetch followers and title for each streamer and update the state
+        const loadAdditionalData = async () => {
+            const streamersWithData = await Promise.all(
                 mappedStreamers.map(async (streamer) => {
                     try {
-                        const followersCount = await getFollowers(
-                            streamer.twitchName
-                        );
+                        const [followersCount, title] = await Promise.all([
+                            getFollowers(streamer.twitchName),
+                            streamer.isOnline
+                                ? getStreamTitle(streamer.twitchName)
+                                : Promise.resolve("Hors ligne")
+                        ]);
 
                         return {
                             ...streamer,
                             followersCount,
+                            title,
                         };
                     } catch (error) {
                         console.error(
-                            `Failed to fetch followers for ${streamer.twitchName}:`,
+                            `Failed to fetch additional data for ${streamer.twitchName}:`,
                             error
                         );
 
@@ -88,10 +91,10 @@ function App() {
                 })
             );
 
-            setStreamers(streamersWithFollowers);
+            setStreamers(streamersWithData);
         };
 
-        loadFollowers();
+        loadAdditionalData();
     }, [data]);
 
     // Copy the array to avoid mutating state, then sort descending
@@ -103,8 +106,8 @@ function App() {
                 return a.name.localeCompare(b.name);
             case "followers":
                 return b.followersCount - a.followersCount;
-            case "game":
-                return a.game.localeCompare(b.game);
+            case "title":
+                return a.title.localeCompare(b.title);
             case "status":
                 return Number(b.isOnline) - Number(a.isOnline);
             case "donations":
@@ -128,13 +131,13 @@ function App() {
             {/* Header stats */}
             <div className='grid mb-6 grid-cols-1 sm:grid-cols-2 gap-4 flex-1'>
                 <div className='bg-gray-800 shadow rounded-xl px-6 py-4 text-center'>
-                    <h2 className='text-gray-400 font-medium mb-1'>💰 Total des donations 💰</h2>
+                    <h2 className='text-gray-400 font-medium mb-1'>💸 Total des donations 💸</h2>
                     <p className='text-3xl md:text-6xl font-bold text-purple-400'>
                         {donationAmount}
                     </p>
                 </div>
                 <div className='bg-gray-800 shadow rounded-xl px-6 py-4 text-center'>
-                    <h2 className='text-gray-400 font-medium mb-1'>👀 Total de spectateurs 👀</h2>
+                    <h2 className='text-gray-400 font-medium mb-1'>👥 Total de spectateurs 👥</h2>
                     <p className='text-3xl md:text-6xl font-bold text-indigo-400'>{viewersCount}</p>
                 </div>
             </div>
@@ -149,7 +152,7 @@ function App() {
                             <SortableHeader keyName="followers" label="Followers" sortBy={sortBy} onSort={setSortBy} />
                             <SortableHeader keyName="donations" label="Donations" sortBy={sortBy} onSort={setSortBy} />
                             <SortableHeader keyName="viewers" label="Viewers" sortBy={sortBy} onSort={setSortBy} />
-                            <SortableHeader keyName="game" label="Jeu" sortBy={sortBy} onSort={setSortBy} />
+                            <SortableHeader keyName="title" label="Title" sortBy={sortBy} onSort={setSortBy} />
                             <SortableHeader keyName="status" alignCenter sortBy={sortBy} onSort={setSortBy}>
                                 <p className='text-base font-medium'>({onlineCount}/{streamers.length})</p>
                             </SortableHeader>
@@ -201,12 +204,12 @@ function App() {
                                     {streamer.viewersAmountFormatted}
                                 </td>
 
-                                {/* Game */}
+                                {/* Title */}
                                 <td
                                     className='px-4 py-3 max-w-[200px] truncate text-gray-400 italic'
-                                    title={streamer.game}
+                                    title={streamer.title}
                                 >
-                                    {streamer.game !== "Offline" ? streamer.game : "Aucun jeu"}
+                                    {streamer.title}
                                 </td>
 
                                 {/* Status */}

@@ -9,14 +9,14 @@ export interface ZeventStreamer {
     donationAmountFormatted: string;
     viewersAmountRaw: number;
     viewersAmountFormatted: string;
-    game: string;
+    title: string;
     donationUrl: string;
     pictureUrl: string;
     isOnline: boolean;
 };
 
 // Type for the sorting key
-export type SortKey = "name" | "followers" | "donations" | "viewers" | "game" | "status";
+export type SortKey = "name" | "followers" | "donations" | "viewers" | "title" | "status";
 
 // Interface for the Twitch GraphQL API response
 export interface TwitchGqlResponse {
@@ -25,6 +25,17 @@ export interface TwitchGqlResponse {
             followers: {
                 totalCount: number;
             };
+        } | null;
+    };
+}
+
+// Interface for the Twitch GraphQL API stream response
+export interface TwitchGqlStreamResponse {
+    data: {
+        user: {
+            stream: {
+                title: string;
+            } | null;
         } | null;
     };
 }
